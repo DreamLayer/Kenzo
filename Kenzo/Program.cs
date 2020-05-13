@@ -10,9 +10,10 @@ namespace Kenzo
 {
     class Program
     {
+        private static IWebHost host;
         static void Main(string[] args)
         {
-            var host = new WebHostBuilder()
+            host = new WebHostBuilder()
                 .UseKestrel()
                 .UseContentRoot(AppDomain.CurrentDomain.SetupInformation.ApplicationBase)
                 .ConfigureServices(services =>
