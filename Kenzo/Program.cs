@@ -18,12 +18,12 @@ namespace Kenzo
                 .UseContentRoot(AppDomain.CurrentDomain.SetupInformation.ApplicationBase)
                 .ConfigureServices(services =>
                 {
-                    services.AddRouting();
+                    //services.AddRouting();
                     services.AddProxy();
                 })
                 .ConfigureKestrel(options =>
                 {
-                    options.ListenLocalhost(2525, listenOptions =>
+                    options.ListenLocalhost(80, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
                     });
@@ -31,17 +31,27 @@ namespace Kenzo
 
                 .Configure(app =>
                 {
-                    app.UseRouting().UseEndpoints(endpoint =>
-                        endpoint.Map("/", async context => 
-                            await context.Response.WriteAsync("Welcome to Kenzo ProxyKit")));
-                    app.Map("/milione", svr =>
+                    //app.UseRouting().UseEndpoints(endpoint =>
+                    //    endpoint.Map("/", async context => 
+                    //        await context.Response.WriteAsync("Welcome to Kenzo ProxyKit")));
+                    app.Map("", svr =>
                     {
                         svr.RunProxy(async context =>
                         {
-                            var fwdContext = context
-                                .ForwardTo("https://mili.one/")
-                                .CopyXForwardedHeaders();
-                            return await fwdContext.Send();
+                            if (context.Request.Host == new HostString("milione.xuan"))
+                            {
+                                var fwdContext = context
+                                    .ForwardTo("https://mili.one/")
+                                    .CopyXForwardedHeaders();
+                                return await fwdContext.Send();
+                            }
+                            else
+                            {
+                                var fwdContext = context
+                                    .ForwardTo("https://milione.cc/")
+                                    .CopyXForwardedHeaders();
+                                return await fwdContext.Send();
+                            }
                         });
                     });
                 })
