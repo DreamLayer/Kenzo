@@ -40,7 +40,7 @@ namespace Kenzo
                             var response = new HttpResponseMessage();
                             try
                             {
-                                if (HostDictionary.TryGetValue(context.Request.Host,out Uri fwdToUri))
+                                if (HostDictionary.TryGetValue(context.Request.Host,out var fwdToUri))
                                 {
                                     response = await context.ForwardTo(fwdToUri).Send();
 
@@ -48,10 +48,10 @@ namespace Kenzo
                                         || response.Content.Headers.ContentType.MediaType != "text/html")
                                         return response;
 
-                                    var rewrittenResponse = await response.ReplaceContent(async upstreamContent =>
+                                    var reResponse = await response.ReplaceContent(async upContent =>
                                     {
                                         string body;
-                                        var steam = await upstreamContent.ReadAsByteArrayAsync();
+                                        var steam = await upContent.ReadAsByteArrayAsync();
                                         try
                                         {
                                             body = new StreamReader(new GZipStream(new MemoryStream(steam),
@@ -66,7 +66,7 @@ namespace Kenzo
                                             Encoding.UTF8, response.Content.Headers.ContentType.MediaType);
                                     });
                                     context.Response.RegisterForDispose(response);
-                                    return rewrittenResponse;
+                                    return reResponse;
                                 }
 
                                 response = await context.ForwardTo("https://mili.one/").Send();
