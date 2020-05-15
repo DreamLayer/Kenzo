@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,11 +15,13 @@ namespace Kenzo
 {
     class Program
     {
-        private static IWebHost host;
+        private static IWebHost Host;
+        public static Dictionary<HostString, Uri> HostDictionary = new Dictionary<HostString, Uri>();
 
         static void Main(string[] args)
         {
-            host = new WebHostBuilder()
+            HostDictionary.Add(new HostString("mili.xuan"), new Uri("https://milione.cc/"));
+            Host = new WebHostBuilder()
                 .UseKestrel()
                 .UseContentRoot(AppDomain.CurrentDomain.SetupInformation.ApplicationBase)
                 .ConfigureServices(services => services.AddProxy())
@@ -35,13 +37,17 @@ namespace Kenzo
                     {
                         svr.RunProxy(async context =>
                         {
-                            var response = new HttpResponseMessage(HttpStatusCode.OK);
+                            var response = new HttpResponseMessage();
                             try
                             {
-                                if (context.Request.Host == new HostString("mili.xuan"))
+                                if (HostDictionary.TryGetValue(context.Request.Host,out Uri fwdToUri))
                                 {
-                                    response = await context.ForwardTo("https://milione.cc/").Send();
-                                    if (response.Content.Headers.ContentType.MediaType != "text/html") return response;
+                                    response = await context.ForwardTo(fwdToUri).Send();
+
+                                    if (response.Content.Headers.ContentType == null
+                                        || response.Content.Headers.ContentType.MediaType != "text/html")
+                                        return response;
+
                                     var rewrittenResponse = await response.ReplaceContent(async upstreamContent =>
                                     {
                                         string body;
@@ -56,8 +62,8 @@ namespace Kenzo
                                             body = new StreamReader(new MemoryStream(steam), Encoding.UTF8).ReadToEnd();
                                         }
 
-                                        return new StringContent(body.Replace("https://milione.cc/", "/"),
-                                            Encoding.UTF8, "text/html");
+                                        return new StringContent(body.Replace(fwdToUri.ToString(), "/"),
+                                            Encoding.UTF8, response.Content.Headers.ContentType.MediaType);
                                     });
                                     context.Response.RegisterForDispose(response);
                                     return rewrittenResponse;
@@ -75,7 +81,7 @@ namespace Kenzo
                     });
                 }).Build();
 
-            host.Run();
+            Host.Run();
         }
     }
 
