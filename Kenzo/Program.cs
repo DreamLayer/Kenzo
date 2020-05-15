@@ -39,30 +39,32 @@ namespace Kenzo
                             try
                             {
                                 if (context.Request.Host == new HostString("mili.xuan"))
-                                    response = await context.ForwardTo("https://milione.cc/").Send();
-                                else
-                                    response = await context.ForwardTo("https://mili.one/").Send();
-
-                                if (response.Content.Headers.ContentType.MediaType != "text/html") return response;
-                                var rewrittenResponse = await response.ReplaceContent(async upstreamContent =>
                                 {
-                                    string body;
-                                    var steam = await upstreamContent.ReadAsByteArrayAsync();
-                                    try
+                                    response = await context.ForwardTo("https://milione.cc/").Send();
+                                    if (response.Content.Headers.ContentType.MediaType != "text/html") return response;
+                                    var rewrittenResponse = await response.ReplaceContent(async upstreamContent =>
                                     {
-                                        body = new StreamReader(new GZipStream(new MemoryStream(steam),
-                                            CompressionMode.Decompress), Encoding.UTF8).ReadToEnd();
-                                    }
-                                    catch (Exception)
-                                    {
-                                        body = new StreamReader(new MemoryStream(steam), Encoding.UTF8).ReadToEnd();
-                                    }
+                                        string body;
+                                        var steam = await upstreamContent.ReadAsByteArrayAsync();
+                                        try
+                                        {
+                                            body = new StreamReader(new GZipStream(new MemoryStream(steam),
+                                                CompressionMode.Decompress), Encoding.UTF8).ReadToEnd();
+                                        }
+                                        catch (Exception)
+                                        {
+                                            body = new StreamReader(new MemoryStream(steam), Encoding.UTF8).ReadToEnd();
+                                        }
 
-                                    return new StringContent(body.Replace("https://milione.cc/", "/"),
-                                        Encoding.UTF8, "text/html");
-                                });
-                                context.Response.RegisterForDispose(response);
-                                return rewrittenResponse;
+                                        return new StringContent(body.Replace("https://milione.cc/", "/"),
+                                            Encoding.UTF8, "text/html");
+                                    });
+                                    context.Response.RegisterForDispose(response);
+                                    return rewrittenResponse;
+                                }
+
+                                response = await context.ForwardTo("https://mili.one/").Send();
+                                return response;
                             }
                             catch (Exception e)
                             {
