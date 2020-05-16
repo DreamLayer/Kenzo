@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.DependencyInjection;
 using ProxyKit;
 
 namespace Kenzo
@@ -24,7 +25,11 @@ namespace Kenzo
             Host = new WebHostBuilder()
                 .UseKestrel()
                 .UseContentRoot(AppDomain.CurrentDomain.SetupInformation.ApplicationBase)
-                .ConfigureServices(services => services.AddProxy())
+                .ConfigureServices(services =>
+                {
+                    services.AddRouting();
+                    services.AddProxy();
+                })
                 .ConfigureKestrel(options =>
                 {
                     options.ListenLocalhost(80,
@@ -33,6 +38,16 @@ namespace Kenzo
 
                 .Configure(app =>
                 {
+                    app.Map("/add", svr =>
+                        app.UseRouting().UseEndpoints(endpoint =>
+                            endpoint.Map("/add", async context =>
+                            {
+                                var queryDictionary = context.Request.Query;
+                                var p = queryDictionary.TryGetValue("p", out var pStr) ? pStr.ToString() : "http";
+                                HostDictionary.Add(new HostString(queryDictionary["host"]),
+                                    new Uri($"{p}://{queryDictionary["source"]}/"));
+                                await context.Response.WriteAsync("OK");
+                            })));
                     app.Map("", svr =>
                     {
                         svr.RunProxy(async context =>
