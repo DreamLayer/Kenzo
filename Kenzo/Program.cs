@@ -66,6 +66,7 @@ namespace Kenzo
                                             Encoding.UTF8, response.Content.Headers.ContentType.MediaType);
                                     });
                                     context.Response.RegisterForDispose(response);
+                                    context.Response.Headers.Add("x-forwarder-by", "KENZO/Zero");
                                     return reResponse;
                                 }
 
