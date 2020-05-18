@@ -65,7 +65,7 @@ namespace Kenzo
                                         if (IsLocalPortUse(fwdToUri.Port))
                                             response = await context.ForwardTo(fwdToUri).Send();
                                         else
-                                            response = await context.ForwardTo("https://mili.one/").Send();
+                                            response = await context.ForwardTo("https://mili.one/SiteNotFound/").Send();
                                     }
                                     else
                                     {
@@ -98,7 +98,7 @@ namespace Kenzo
                                     return reResponse;
                                 }
 
-                                response = await context.ForwardTo("https://mili.one/").Send();
+                                response = await context.ForwardTo("https://mili.one/SiteNotFound/").Send();
                                 return response;
                             }
                             catch (Exception e)
