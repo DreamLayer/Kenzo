@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -57,7 +60,17 @@ namespace Kenzo
                             {
                                 if (HostDictionary.TryGetValue(context.Request.Host,out var fwdToUri))
                                 {
-                                    response = await context.ForwardTo(fwdToUri).Send();
+                                    if (IsLocalHost(fwdToUri.Host))
+                                    {
+                                        if (IsLocalPortUse(fwdToUri.Port))
+                                            response = await context.ForwardTo(fwdToUri).Send();
+                                        else
+                                            response = await context.ForwardTo("https://mili.one/").Send();
+                                    }
+                                    else
+                                    {
+                                        response = await context.ForwardTo(fwdToUri).Send();
+                                    }
 
                                     if (response.Content.Headers.ContentType == null
                                         || response.Content.Headers.ContentType.MediaType != "text/html")
@@ -99,6 +112,24 @@ namespace Kenzo
 
             Host.Run();
         }
+
+        public static bool IsLocalHost(string host)
+        {
+            return IPAddress.TryParse(host, out var ipAddress)
+                ? IPAddress.IsLoopback(ipAddress)
+                : host.ToLower().Equals("localhost");
+        }
+
+
+        public static bool IsLocalPortUse(int port)
+        {
+            IPEndPoint[] ipEndPointsTcp = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners();
+            IPEndPoint[] ipEndPointsUdp = IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners();
+
+            return ipEndPointsTcp.Any(endPoint => endPoint.Port == port)
+                   || ipEndPointsUdp.Any(endPoint => endPoint.Port == port);
+        }
+
     }
 
     public delegate Task<HttpContent> RewriteContent(HttpContent upstreamContent);
