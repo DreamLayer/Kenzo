@@ -122,11 +122,8 @@ namespace Kenzo
 
         public static bool IsLocalPortUse(int port)
         {
-            IPEndPoint[] ipEndPointsTcp = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners();
-            IPEndPoint[] ipEndPointsUdp = IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners();
-
-            return ipEndPointsTcp.Any(endPoint => endPoint.Port == port)
-                   || ipEndPointsUdp.Any(endPoint => endPoint.Port == port);
+            return IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners()
+                .Any(endPoint => endPoint.Port == port);
         }
 
     }
