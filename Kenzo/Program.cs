@@ -78,14 +78,7 @@ namespace Kenzo
 
                                     var reResponse = await response.ReplaceContent(async upContent =>
                                     {
-                                        string body;
-                                        var bytes = await upContent.ReadAsByteArrayAsync();
-                                        if (bytes[0] == 31 && bytes[1] == 139)
-                                            body = new StreamReader(new GZipStream(new MemoryStream(bytes),
-                                                CompressionMode.Decompress), Encoding.UTF8).ReadToEnd();
-                                        else
-                                            body = new StreamReader(new MemoryStream(bytes), Encoding.UTF8).ReadToEnd();
-
+                                        var body = await GetBody(upContent);
                                         return new StringContent(body.Replace(fwdToUri.ToString(), "/"),
                                             Encoding.UTF8, response.Content.Headers.ContentType.MediaType);
                                     });
@@ -116,6 +109,16 @@ namespace Kenzo
                 : host.ToLower().Equals("localhost");
         }
 
+        public static async Task<string> GetBody(HttpContent content)
+        {
+            var bytes = await content.ReadAsByteArrayAsync();
+            if ((bytes[0] == 31 && bytes[1] == 139) ||
+                (content.Headers.TryGetValues("content-encoding", out var codeValues)
+                 && codeValues.Contains("gzip")))
+                return new StreamReader(new GZipStream(new MemoryStream(bytes),
+                    CompressionMode.Decompress), Encoding.UTF8).ReadToEnd();
+            return new StreamReader(new MemoryStream(bytes), Encoding.UTF8).ReadToEnd();
+        }
 
         public static bool IsLocalPortUse(int port)
         {
