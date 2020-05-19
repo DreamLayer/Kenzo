@@ -79,16 +79,12 @@ namespace Kenzo
                                     var reResponse = await response.ReplaceContent(async upContent =>
                                     {
                                         string body;
-                                        var steam = await upContent.ReadAsByteArrayAsync();
-                                        try
-                                        {
-                                            body = new StreamReader(new GZipStream(new MemoryStream(steam),
+                                        var bytes = await upContent.ReadAsByteArrayAsync();
+                                        if (bytes[0] == 31 && bytes[1] == 139)
+                                            body = new StreamReader(new GZipStream(new MemoryStream(bytes),
                                                 CompressionMode.Decompress), Encoding.UTF8).ReadToEnd();
-                                        }
-                                        catch (Exception)
-                                        {
-                                            body = new StreamReader(new MemoryStream(steam), Encoding.UTF8).ReadToEnd();
-                                        }
+                                        else
+                                            body = new StreamReader(new MemoryStream(bytes), Encoding.UTF8).ReadToEnd();
 
                                         return new StringContent(body.Replace(fwdToUri.ToString(), "/"),
                                             Encoding.UTF8, response.Content.Headers.ContentType.MediaType);
