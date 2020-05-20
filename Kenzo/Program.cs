@@ -25,6 +25,7 @@ namespace Kenzo
         static void Main(string[] args)
         {
             HostDictionary.Add(new HostString("mili.xuan"), new Uri("https://milione.cc/"));
+            //HostDictionary.Add(new HostString("milione.xuan"), new Uri("http://127.0.0.1:2020/"));
             Host = new WebHostBuilder()
                 .UseKestrel()
                 .UseContentRoot(AppDomain.CurrentDomain.SetupInformation.ApplicationBase)
@@ -63,16 +64,11 @@ namespace Kenzo
                                 if (HostDictionary.TryGetValue(context.Request.Host,out var fwdToUri))
                                 {
                                     if (IsLocalHost(fwdToUri.Host))
-                                    {
-                                        if (IsLocalPortUse(fwdToUri.Port))
-                                            response = await context.ForwardTo(fwdToUri).Send();
-                                        else
-                                            response = await context.ForwardTo("https://mili.one/SiteNotFound/").Send();
-                                    }
+                                        response = await context.ForwardTo(IsLocalPortUse(fwdToUri.Port)
+                                            ? fwdToUri
+                                            : new Uri("https://mili.one/SiteNotFound/")).Send();
                                     else
-                                    {
                                         response = await context.ForwardTo(fwdToUri).Send();
-                                    }
 
                                     if (response.Content.Headers.ContentType == null
                                         || response.Content.Headers.ContentType.MediaType != "text/html")
