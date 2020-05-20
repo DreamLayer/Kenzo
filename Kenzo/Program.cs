@@ -102,12 +102,14 @@ namespace Kenzo
             Host.Run();
         }
 
-        public static bool IsLocalHost(string host)
-        {
-            return IPAddress.TryParse(host, out var ipAddress)
+        public static bool IsLocalHost(string host) =>
+            IPAddress.TryParse(host, out var ipAddress)
                 ? IPAddress.IsLoopback(ipAddress)
                 : host.ToLower().Equals("localhost");
-        }
+
+        public static bool IsLocalPortUse(int port) =>
+            IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners()
+                .Any(endPoint => endPoint.Port == port);
 
         public static async Task<string> GetBody(HttpContent content)
         {
@@ -118,27 +120,6 @@ namespace Kenzo
                 return new StreamReader(new GZipStream(new MemoryStream(bytes),
                     CompressionMode.Decompress), Encoding.UTF8).ReadToEnd();
             return new StreamReader(new MemoryStream(bytes), Encoding.UTF8).ReadToEnd();
-        }
-
-        public static bool IsLocalPortUse(int port)
-        {
-            return IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners()
-                .Any(endPoint => endPoint.Port == port);
-        }
-
-    }
-
-    public delegate Task<HttpContent> RewriteContent(HttpContent upstreamContent);
-
-    public static class HttpResponseExtensions
-    {
-        public static async Task<HttpResponseMessage> ReplaceContent(
-            this HttpResponseMessage upstreamResponse, RewriteContent rewriteContent)
-        {
-            var response = new HttpResponseMessage();
-            foreach (var (key, value) in upstreamResponse.Headers) response.Headers.Add(key, value);
-            response.Content = await rewriteContent(upstreamResponse.Content);
-            return response;
         }
     }
 }
