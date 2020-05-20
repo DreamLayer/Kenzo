@@ -31,7 +31,9 @@ namespace Kenzo
                 .ConfigureServices(services =>
                 {
                     services.AddRouting();
-                    services.AddProxy();
+                    services.AddProxy(httpClientBuilder =>
+                        httpClientBuilder.ConfigureHttpClient(client =>
+                            client.Timeout = TimeSpan.FromSeconds(5)));
                 })
                 .ConfigureKestrel(options =>
                 {
