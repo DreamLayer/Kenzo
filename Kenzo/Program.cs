@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -68,7 +71,9 @@ namespace Kenzo
                                             ? fwdToUri
                                             : new Uri("https://mili.one/SiteNotFound/")).Send();
                                     else
-                                        response = await context.ForwardTo(fwdToUri).Send();
+                                        response = await context.ForwardTo(IsTcportUse(fwdToUri.Host, fwdToUri.Port)
+                                            ? fwdToUri
+                                            : new Uri("https://mili.one/SiteNotFound/")).Send();
 
                                     if (response.Content.Headers.ContentType == null
                                         || response.Content.Headers.ContentType.MediaType != "text/html")
@@ -108,6 +113,24 @@ namespace Kenzo
         public static bool IsLocalPortUse(int port) =>
             IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners()
                 .Any(endPoint => endPoint.Port == port);
+
+        public static bool IsTcportUse(string ip, int port)
+        {
+            var socks = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                { Blocking = true, ReceiveTimeout = 3000, SendTimeout = 3000 };
+            var point = IPAddress.TryParse(ip, out var ipAddress)
+                ? new IPEndPoint(ipAddress, port)
+                : new IPEndPoint(Dns.GetHostAddresses(ip)[0], port);
+            try
+            {
+                socks.Connect(point);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         public static async Task<string> GetBody(HttpContent content)
         {
