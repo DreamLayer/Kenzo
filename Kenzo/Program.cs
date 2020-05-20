@@ -71,11 +71,13 @@ namespace Kenzo
                                             ? fwdToUri
                                             : new Uri("https://mili.one/SiteNotFound/")).Send();
                                     else
-                                        response = await context.ForwardTo(IsTcportUse(fwdToUri.Host, fwdToUri.Port)
-                                            ? fwdToUri
-                                            : new Uri("https://mili.one/SiteNotFound/")).Send();
+                                        response = await context.ForwardTo(fwdToUri).Send();
+                                    //response = await context.ForwardTo(IsTcportUse(fwdToUri.Host, fwdToUri.Port)
+                                        //    ? fwdToUri
+                                        //    : new Uri("https://mili.one/SiteNotFound/")).Send();
 
-                                    if (response.Content.Headers.ContentType == null
+                                    if (response.StatusCode != HttpStatusCode.OK
+                                        || response.Content.Headers.ContentType == null 
                                         || response.Content.Headers.ContentType.MediaType != "text/html")
                                         return response;
 
@@ -124,6 +126,7 @@ namespace Kenzo
             try
             {
                 socks.Connect(point);
+                socks.Close(500);
                 return true;
             }
             catch
