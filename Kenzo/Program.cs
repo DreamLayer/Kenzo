@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -9,7 +8,6 @@ using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -64,7 +62,7 @@ namespace Kenzo
                             var response = new HttpResponseMessage();
                             try
                             {
-                                if (HostDictionary.TryGetValue(context.Request.Host,out var fwdToUri))
+                                if (HostDictionary.TryGetValue(context.Request.Host, out var fwdToUri))
                                 {
                                     if (IsLocalHost(fwdToUri.Host))
                                         response = await context.ForwardTo(IsLocalPortUse(fwdToUri.Port)
@@ -72,12 +70,15 @@ namespace Kenzo
                                             : new Uri("https://mili.one/SiteNotFound/")).Send();
                                     else
                                         response = await context.ForwardTo(fwdToUri).Send();
+                                    
                                     //response = await context.ForwardTo(IsTcportUse(fwdToUri.Host, fwdToUri.Port)
-                                        //    ? fwdToUri
-                                        //    : new Uri("https://mili.one/SiteNotFound/")).Send();
+                                    //    ? fwdToUri
+                                    //    : new Uri("https://mili.one/SiteNotFound/")).Send();
 
-                                    if (response.StatusCode != HttpStatusCode.OK
-                                        || response.Content.Headers.ContentType == null 
+                                    response.Headers.Add("X-Forwarder-By", "KENZO/Zero");
+                                    var statusCode = Convert.ToInt32(response.StatusCode);
+                                    if ((statusCode >= 400 || statusCode < 200)
+                                        || response.Content.Headers.ContentType == null
                                         || response.Content.Headers.ContentType.MediaType != "text/html")
                                         return response;
 
@@ -88,7 +89,6 @@ namespace Kenzo
                                             Encoding.UTF8, response.Content.Headers.ContentType.MediaType);
                                     });
                                     context.Response.RegisterForDispose(response);
-                                    context.Response.Headers.Add("x-forwarder-by", "KENZO/Zero");
                                     return reResponse;
                                 }
 
