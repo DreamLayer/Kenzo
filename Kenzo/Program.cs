@@ -13,8 +13,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using System.Runtime.Caching;
 using Microsoft.Extensions.DependencyInjection;
 using ProxyKit;
+using static System.Runtime.Caching.MemoryCache;
 
 namespace Kenzo
 {
@@ -69,11 +71,9 @@ namespace Kenzo
                                             ? fwdToUri
                                             : new Uri("https://mili.one/SiteNotFound/")).Send();
                                     else
-                                        response = await context.ForwardTo(fwdToUri).Send();
-                                    
-                                    //response = await context.ForwardTo(IsTcportUse(fwdToUri.Host, fwdToUri.Port)
-                                    //    ? fwdToUri
-                                    //    : new Uri("https://mili.one/SiteNotFound/")).Send();
+                                        response = await context.ForwardTo(IsTcportUse(fwdToUri.Host, fwdToUri.Port)
+                                            ? fwdToUri
+                                            : new Uri("https://mili.one/SiteNotFound/")).Send();
 
                                     response.Headers.Add("X-Forwarder-By", "KENZO/Zero");
                                     var statusCode = Convert.ToInt32(response.StatusCode);
@@ -118,21 +118,34 @@ namespace Kenzo
 
         public static bool IsTcportUse(string ip, int port)
         {
-            var socks = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
-                { Blocking = true, ReceiveTimeout = 3000, SendTimeout = 3000 };
             var point = IPAddress.TryParse(ip, out var ipAddress)
                 ? new IPEndPoint(ipAddress, port)
                 : new IPEndPoint(Dns.GetHostAddresses(ip)[0], port);
+            if (Default.Contains(point.ToString())) return (bool) Default.Get(point.ToString());
+            var socks = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                { Blocking = true, ReceiveTimeout = 3000, SendTimeout = 3000 };
             try
             {
                 socks.Connect(point);
                 socks.Close(500);
+                AddCachePoint(point, true);
                 return true;
             }
             catch
             {
+                AddCachePoint(point,false);
                 return false;
             }
+        }
+
+        public static void AddCachePoint(IPEndPoint keyPoint, bool value)
+        {
+            if (!Default.Contains(keyPoint.ToString()))
+                Task.Run(() => Default.Add(keyPoint.ToString(), value, new CacheItemPolicy
+                {
+                    AbsoluteExpiration =
+                        DateTimeOffset.Now + TimeSpan.FromMinutes(5)
+                }));
         }
 
         public static async Task<string> GetBody(HttpContent content)

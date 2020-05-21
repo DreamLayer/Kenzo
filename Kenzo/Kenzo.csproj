@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="ProxyKit" Version="2.3.3" />
+    <PackageReference Include="System.Runtime.Caching" Version="5.0.0-preview.4.20251.6" />
   </ItemGroup>
 
 </Project>
