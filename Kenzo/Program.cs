@@ -57,7 +57,7 @@ namespace Kenzo
                                     new Uri($"{p}://{queryDictionary["source"]}/"));
                                 await context.Response.WriteAsync("OK");
                             })));
-                    app.Map("", svr =>
+                    app.Map(string.Empty, svr =>
                     {
                         svr.RunProxy(async context =>
                         {
