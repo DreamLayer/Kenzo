@@ -29,6 +29,7 @@ namespace Kenzo
         {
             HostDictionary.Add(new HostString("mili.xuan"), new Uri("https://milione.cc/"));
             //HostDictionary.Add(new HostString("milione.xuan"), new Uri("http://127.0.0.1:2020/"));
+            //HostDictionary.Add(new HostString("xuan"), new Uri("https://mili.one/"));
             Host = new WebHostBuilder()
                 .UseKestrel()
                 .UseContentRoot(AppDomain.CurrentDomain.SetupInformation.ApplicationBase)
@@ -64,7 +65,17 @@ namespace Kenzo
                             var response = new HttpResponseMessage();
                             try
                             {
-                                if (HostDictionary.TryGetValue(context.Request.Host, out var fwdToUri))
+                                if (context.Request.Host.ToString().Contains(".at."))
+                                {
+                                    var hostSplit = context.Request.Host.ToString().Split(".at.");
+                                    var intent = new Uri("http://" + hostSplit[0].Replace("-", ":"));
+                                    response = await context.ForwardTo(
+                                        HostDictionary.TryGetValue(new HostString(hostSplit[1]), out _) &&
+                                        IsTcportUse(intent.Host, intent.Port)
+                                            ? intent
+                                            : new Uri("https://mili.one/SiteNotFound/")).Send();
+                                }
+                                else if (HostDictionary.TryGetValue(context.Request.Host, out var fwdToUri))
                                 {
                                     if (IsLocalHost(fwdToUri.Host))
                                         response = await context.ForwardTo(IsLocalPortUse(fwdToUri.Port)
@@ -91,8 +102,10 @@ namespace Kenzo
                                     context.Response.RegisterForDispose(response);
                                     return reResponse;
                                 }
-
-                                response = await context.ForwardTo("https://mili.one/SiteNotFound/").Send();
+                                else
+                                {
+                                    response = await context.ForwardTo("https://mili.one/SiteNotFound/").Send();
+                                }
                                 return response;
                             }
                             catch (Exception e)
