@@ -48,16 +48,25 @@ namespace Kenzo
 
                 .Configure(app =>
                 {
-                    app.Map("/add", svr =>
+                    app.Map("/put", svr =>
                         app.UseRouting().UseEndpoints(endpoint =>
-                            endpoint.Map("/add", async context =>
+                        {
+                            endpoint.Map("/put", async context =>
                             {
                                 var queryDictionary = context.Request.Query;
                                 var p = queryDictionary.TryGetValue("p", out var pStr) ? pStr.ToString() : "http";
                                 HostDictionary.Add(new HostString(queryDictionary["host"]),
                                     new Uri($"{p}://{queryDictionary["source"]}/"));
                                 await context.Response.WriteAsync("OK");
-                            })));
+                            });
+                            endpoint.Map("/put/txt", async context =>
+                            {
+                                var queryDictionary = context.Request.Query;
+                                HostDictionary.Add(new HostString(queryDictionary["name"]),
+                                    new Uri(queryDictionary["txt"].ToString().Split('@')[1]));
+                                await context.Response.WriteAsync("OK2");
+                            });
+                        }));
                     app.Map(string.Empty, svr =>
                     {
                         svr.RunProxy(async context =>
