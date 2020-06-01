@@ -77,9 +77,12 @@ namespace Kenzo
                                 if (context.Request.Host.ToString().Contains(".at."))
                                 {
                                     var hostSplit = context.Request.Host.ToString().Split(".at.");
-                                    var intent = new Uri("http://" + hostSplit[0].Replace("-", ":"));
+                                    var intent = new Uri("http://" + hostSplit[0].Split('-')[0]);
+                                    if (context.Request.Host.ToString().Contains("-"))
+                                        intent = new Uri(
+                                            "http://" + hostSplit[0].Split('-')[0] + ":" + hostSplit[0].Split('-')[1]);
                                     response = await context.ForwardTo(
-                                        HostDictionary.TryGetValue(new HostString(hostSplit[1]), out _) &&
+                                        //HostDictionary.TryGetValue(new HostString(hostSplit[1]), out _) &&
                                         IsTcportUse(intent.Host, intent.Port)
                                             ? intent
                                             : new Uri("https://mili.one/SiteNotFound/")).Send();
