@@ -51,6 +51,11 @@ namespace Kenzo
                     app.Map("/put", svr =>
                         app.UseRouting().UseEndpoints(endpoint =>
                         {
+                            endpoint.Map("/put/list", async context =>
+                                {
+                                    await context.Response.WriteAsync(string.Join(Environment.NewLine,
+                                        HostDictionary.Keys.ToArray()));
+                                });
                             endpoint.Map("/put", async context =>
                             {
                                 var queryDictionary = context.Request.Query;
