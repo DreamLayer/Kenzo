@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.Runtime.Caching;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
 using ProxyKit;
 using static System.Runtime.Caching.MemoryCache;
@@ -24,6 +25,7 @@ namespace Kenzo
     {
         private static IWebHost Host;
         public static Dictionary<HostString, Uri> HostDictionary = new Dictionary<HostString, Uri>();
+        public static Dictionary<HostString, X509Certificate2> CertDictionary = new Dictionary<HostString, X509Certificate2>();
 
         static void Main(string[] args)
         {
@@ -43,7 +45,18 @@ namespace Kenzo
                 .ConfigureKestrel(options =>
                 {
                     options.ListenLocalhost(80,
-                        listenOptions => { listenOptions.Protocols = HttpProtocols.Http1AndHttp2; });
+                        listenOptions =>
+                        {
+                            listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+                            listenOptions.UseHttps(httpsOptions =>
+                            {
+
+                                httpsOptions.ServerCertificateSelector = (connectionContext, name) =>
+                                    name != null && CertDictionary.TryGetValue(new HostString(name), out var cert)
+                                        ? cert
+                                        : CertDictionary[new HostString("notfound.xuan")];
+                            });
+                        });
                 })
 
                 .Configure(app =>
