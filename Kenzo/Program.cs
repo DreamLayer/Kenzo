@@ -27,11 +27,9 @@ namespace Kenzo
         public static Dictionary<HostString, Uri> HostDictionary = new Dictionary<HostString, Uri>();
         public static Dictionary<HostString, X509Certificate2> CertDictionary = new Dictionary<HostString, X509Certificate2>();
 
-        static void Main(string[] args)
+        static void Main()
         {
             HostDictionary.Add(new HostString("mili.xuan"), new Uri("https://milione.cc/"));
-            //HostDictionary.Add(new HostString("milione.xuan"), new Uri("http://127.0.0.1:2020/"));
-            //HostDictionary.Add(new HostString("xuan"), new Uri("https://mili.one/"));
             Host = new WebHostBuilder()
                 .UseKestrel()
                 .UseContentRoot(AppDomain.CurrentDomain.SetupInformation.ApplicationBase)
@@ -48,41 +46,23 @@ namespace Kenzo
                         listenOptions =>
                         {
                             listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-                            listenOptions.UseHttps(httpsOptions =>
-                            {
-
-                                httpsOptions.ServerCertificateSelector = (connectionContext, name) =>
-                                    name != null && CertDictionary.TryGetValue(new HostString(name), out var cert)
+                            listenOptions.UseHttps(httpsOptions => httpsOptions.ServerCertificateSelector =
+                                (connectionContext, name) =>
+                                    name != null &&
+                                    CertDictionary.TryGetValue(new HostString(name), out var cert)
                                         ? cert
-                                        : CertDictionary[new HostString("notfound.xuan")];
-                            });
+                                        : CertDictionary[new HostString("notfound.cert")]);
                         });
                 })
 
                 .Configure(app =>
                 {
-                    app.Map("/put", svr =>
+                    app.Map("/test", svr =>
                         app.UseRouting().UseEndpoints(endpoint =>
                         {
-                            endpoint.Map("/put/list", async context =>
-                                {
-                                    await context.Response.WriteAsync(string.Join(Environment.NewLine,
-                                        HostDictionary.Keys.ToArray()));
-                                });
-                            endpoint.Map("/put", async context =>
+                            endpoint.Map("/test/test", async context =>
                             {
-                                var queryDictionary = context.Request.Query;
-                                var p = queryDictionary.TryGetValue("p", out var pStr) ? pStr.ToString() : "http";
-                                HostDictionary.Add(new HostString(queryDictionary["host"]),
-                                    new Uri($"{p}://{queryDictionary["source"]}/"));
-                                await context.Response.WriteAsync("OK");
-                            });
-                            endpoint.Map("/put/txt", async context =>
-                            {
-                                var queryDictionary = context.Request.Query;
-                                HostDictionary.Add(new HostString(queryDictionary["name"]),
-                                    new Uri(queryDictionary["txt"].ToString().Split('@')[1]));
-                                await context.Response.WriteAsync("OK2");
+                                await context.Response.WriteAsync("hello");
                             });
                         }));
                     app.Map(string.Empty, svr =>
@@ -92,17 +72,24 @@ namespace Kenzo
                             var response = new HttpResponseMessage();
                             try
                             {
-
                                 if (HostDictionary.TryGetValue(context.Request.Host, out var fwdToUri))
                                 {
                                     if (IsLocalHost(fwdToUri.Host))
-                                        response = await context.ForwardTo(IsLocalPortUse(fwdToUri.Port)
-                                            ? fwdToUri
-                                            : new Uri("https://mili.one/SiteNotFound/")).Send();
+                                        response = IsLocalPortUse(fwdToUri.Port)
+                                            ? await context.ForwardTo(fwdToUri).Send()
+                                            : new HttpResponseMessage
+                                            {
+                                                StatusCode = HttpStatusCode.NotFound,
+                                                Content = new StringContent("Site Not Found")
+                                            };
                                     else
-                                        response = await context.ForwardTo(IsTcportUse(fwdToUri.Host, fwdToUri.Port)
-                                            ? fwdToUri
-                                            : new Uri("https://mili.one/SiteNotFound/")).Send();
+                                        response = IsTcportUse(fwdToUri.Host, fwdToUri.Port)
+                                            ? await context.ForwardTo(fwdToUri).Send()
+                                            : new HttpResponseMessage
+                                            {
+                                                StatusCode = HttpStatusCode.NotFound,
+                                                Content = new StringContent("Site Not Found")
+                                            };
 
                                     response.Headers.Add("X-Forwarder-By", "KENZO/Zero");
                                     var statusCode = Convert.ToInt32(response.StatusCode);
@@ -135,7 +122,11 @@ namespace Kenzo
                                 }
                                 else
                                 {
-                                    response = await context.ForwardTo("https://mili.one/SiteNotFound/").Send();
+                                    response = new HttpResponseMessage
+                                    {
+                                        StatusCode = HttpStatusCode.NotFound,
+                                        Content = new StringContent("Site Not Found")
+                                    };
                                 }
                                 return response;
                             }
