@@ -46,12 +46,12 @@ namespace Kenzo
                         listenOptions =>
                         {
                             listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-                            listenOptions.UseHttps(httpsOptions => httpsOptions.ServerCertificateSelector =
-                                (connectionContext, name) =>
-                                    name != null &&
-                                    CertDictionary.TryGetValue(new HostString(name), out var cert)
-                                        ? cert
-                                        : CertDictionary[new HostString("notfound.cert")]);
+                            //listenOptions.UseHttps(httpsOptions => httpsOptions.ServerCertificateSelector =
+                            //    (connectionContext, name) =>
+                            //        name != null &&
+                            //        CertDictionary.TryGetValue(new HostString(name), out var cert)
+                            //            ? cert
+                            //            : CertDictionary[new HostString("notfound.cert")]);
                         });
                 })
 
@@ -72,6 +72,10 @@ namespace Kenzo
                             var response = new HttpResponseMessage();
                             try
                             {
+                                //if (context.Request.Host.ToString().EndsWith("xmut.0x00.cyou"))
+                                //    HostDictionary.TryAdd(context.Request.Host,
+                                //        new Uri(
+                                //            $"https://{context.Request.Host.ToString().Replace("xmut.0x00.cyou", "xmut.edu.cn")}/"));
                                 if (HostDictionary.TryGetValue(context.Request.Host, out var fwdToUri))
                                 {
                                     if (IsLocalHost(fwdToUri.Host))
@@ -120,14 +124,7 @@ namespace Kenzo
                                             ? intent
                                             : new Uri("https://mili.one/SiteNotFound/")).Send();
                                 }
-                                else
-                                {
-                                    response = new HttpResponseMessage
-                                    {
-                                        StatusCode = HttpStatusCode.NotFound,
-                                        Content = new StringContent("Site Not Found")
-                                    };
-                                }
+
                                 return response;
                             }
                             catch (Exception e)
